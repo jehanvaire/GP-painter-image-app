@@ -1,9 +1,9 @@
 #include <iostream>
 #include <fstream>
-#include <Windows.h>
 #include <opencv2/imgcodecs.hpp>
 #include <opencv.hpp>
 #include <opencv2/highgui.hpp>
+#include <ApplicationServices/ApplicationServices.h>
 
 
 std::tuple <int, int> point1;
@@ -77,27 +77,28 @@ std::tuple <int, int> coordonneesCouleurs[] = {
 };
 
 void click() {
-	INPUT input = { 0 };
-	input.type = INPUT_MOUSE;
-	input.mi.dwFlags = MOUSEEVENTF_LEFTDOWN;
-	SendInput(1, &input, sizeof(input));
-	ZeroMemory(&input, sizeof(input));
-	input.type = INPUT_MOUSE;
-	input.mi.dwFlags = MOUSEEVENTF_LEFTUP;
-	SendInput(1, &input, sizeof(input));
+	CGEventRef event = CGEventCreate(NULL);
+	CGPoint cursor = CGEventGetLocation(event);
+	CGEventRef click1_down = CGEventCreateMouseEvent(NULL, kCGEventLeftMouseDown, cursor, kCGMouseButtonLeft);
+	CGEventRef click1_up = CGEventCreateMouseEvent(NULL, kCGEventLeftMouseUp, cursor, kCGMouseButtonLeft);
+	CGEventPost(kCGHIDEventTap, click1_down);
+	CGEventPost(kCGHIDEventTap, click1_up);
+	CFRelease(click1_down);
+	CFRelease(click1_up);
+	CFRelease(event);
 }
 
-void drawLine(std::tuple <int, int> point1, std::tuple <int, int> point2) {
-	SetCursorPos(std::get<0>(point1), std::get<1>(point1));
-	INPUT input = { 0 };
-	input.type = INPUT_MOUSE;
-	input.mi.dwFlags = MOUSEEVENTF_LEFTDOWN;
-	SendInput(1, &input, sizeof(input));
-	SetCursorPos(std::get<0>(point2), std::get<1>(point2));
-	Sleep(1);
-	input.type = INPUT_MOUSE;
-	input.mi.dwFlags = MOUSEEVENTF_LEFTUP;
-	SendInput(1, &input, sizeof(input));
+void drawLine(std::tuple<int, int> point1, std::tuple<int, int> point2) {
+	CGPoint cursor = { std::get<0>(point1), std::get<1>(point1) };
+	CGEventRef click1_down = CGEventCreateMouseEvent(NULL, kCGEventLeftMouseDown, cursor, kCGMouseButtonLeft);
+	CGEventRef click1_up = CGEventCreateMouseEvent(NULL, kCGEventLeftMouseUp, cursor, kCGMouseButtonLeft);
+	CGEventRef move = CGEventCreateMouseEvent(NULL, kCGEventMouseMoved, CGPointMake(std::get<0>(point2), std::get<1>(point2)), kCGMouseButtonLeft);
+	CGEventPost(kCGHIDEventTap, click1_down);
+	CGEventPost(kCGHIDEventTap, move);
+	CGEventPost(kCGHIDEventTap, click1_up);
+	CFRelease(click1_down);
+	CFRelease(click1_up);
+	CFRelease(move);
 }
 
 
