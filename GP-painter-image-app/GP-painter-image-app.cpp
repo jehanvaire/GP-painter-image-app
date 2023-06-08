@@ -1,20 +1,16 @@
-// GP-painter-image-app.cpp : Ce fichier contient la fonction 'main'. L'exécution du programme commence et se termine à cet endroit.
-//
-
 #include <iostream>
+#include <fstream>
 #include <Windows.h>
 #include <opencv2/imgcodecs.hpp>
 #include <opencv.hpp>
 #include <opencv2/highgui.hpp>
 
-using namespace std;
-using namespace cv;
 
-tuple <int, int> point1;
-tuple <int, int> point2;
+std::tuple <int, int> point1;
+std::tuple <int, int> point2;
 
 // declare list of colors
-const cv::Vec3b couleursColoriage[] = { 
+const cv::Vec3b couleursColoriage[] = {
 	cv::Vec3b(0, 80, 205), // bleu foncé
 	//cv::Vec3b(255, 255, 255), // blanc
 	cv::Vec3b(38, 201, 255),
@@ -57,7 +53,7 @@ const cv::Scalar couleursDisponibles[] = {
 };
 
 // define a list of tuples
-tuple <int, int> coordonneesCouleurs[] = {
+std::tuple <int, int> coordonneesCouleurs[] = {
 	
 	{ 722, 527 },
 	//{ 597, 593 },
@@ -80,69 +76,67 @@ tuple <int, int> coordonneesCouleurs[] = {
 };
 
 void click() {
-		INPUT input = { 0 };
-		input.type = INPUT_MOUSE;
-		input.mi.dwFlags = MOUSEEVENTF_LEFTDOWN;
-		SendInput(1, &input, sizeof(input));
-		ZeroMemory(&input, sizeof(input));
-		input.type = INPUT_MOUSE;
-		input.mi.dwFlags = MOUSEEVENTF_LEFTUP;
-SendInput(1, &input, sizeof(input));
-}
-
-void drawLine(tuple <int, int> point1, tuple <int, int> point2) {
-	SetCursorPos(get<0>(point1), get<1>(point1));
 	INPUT input = { 0 };
 	input.type = INPUT_MOUSE;
 	input.mi.dwFlags = MOUSEEVENTF_LEFTDOWN;
 	SendInput(1, &input, sizeof(input));
-	SetCursorPos(get<0>(point2), get<1>(point2));
-	Sleep(10);
+	ZeroMemory(&input, sizeof(input));
+	input.type = INPUT_MOUSE;
+	input.mi.dwFlags = MOUSEEVENTF_LEFTUP;
+	SendInput(1, &input, sizeof(input));
+}
+
+void drawLine(std::tuple <int, int> point1, std::tuple <int, int> point2) {
+	SetCursorPos(std::get<0>(point1), std::get<1>(point1));
+	INPUT input = { 0 };
+	input.type = INPUT_MOUSE;
+	input.mi.dwFlags = MOUSEEVENTF_LEFTDOWN;
+	SendInput(1, &input, sizeof(input));
+	SetCursorPos(std::get<0>(point2), std::get<1>(point2));
+	Sleep(1);
 	input.type = INPUT_MOUSE;
 	input.mi.dwFlags = MOUSEEVENTF_LEFTUP;
 	SendInput(1, &input, sizeof(input));
 }
 
 
-int main()
+int main(int argc, char *argv[])
 {
-	cv::Mat img = cv::imread("D:\\Users\\Adrien\\Pictures\\naurmal-thinking.png");
+	std::string filename = argv[1];
 
-	// convert image to rgb
-	cv::cvtColor(img, img, cv::COLOR_BGR2RGB);
+	cv::Mat img = cv::imread("images/" + filename, cv::IMREAD_UNCHANGED);
 
-	HWND hWND = NULL;
+	// convert image to rgba
+	cv::cvtColor(img, img, cv::COLOR_BGRA2RGBA);
 
+	std::cout << img.at<cv::Vec4b>(5, 5) << std::endl;
 
-	cout << "Appuyez sur 1 pour definir le point en haut a gauche de la zone de dessin" << endl;
-	while (true) {
-		if (GetAsyncKeyState(VK_NUMPAD1)) {
-			POINT p;
-			GetCursorPos(&p);
-			ScreenToClient(hWND, &p);
-			get<0>(point1) = p.x;
-			get<1>(point1) = p.y;
-			cout << "Point defini en haut a gauche" << endl;
-			break;
+	for (int i = 0; i < img.rows; i++)
+	{
+		for (int j = 0; j < img.cols; j++)
+		{
+			cv::Vec4b pixel4b = img.at<cv::Vec4b>(i, j);
+			if (pixel4b[3] == 0) {
+				pixel4b[0] = 255;
+				pixel4b[1] = 255;
+				pixel4b[2] = 255;
+				pixel4b[3] = 255;
+				img.at<cv::Vec4b>(i, j) = pixel4b;
+			}
 		}
 	}
 
-	cout << "Appuyez sur 2 pour definir le point en bas a droite de la zone de dessin" << endl;
-	while (true) {
-		if (GetAsyncKeyState(VK_NUMPAD2)) {
-			POINT p;
-			GetCursorPos(&p);
-			ScreenToClient(hWND, &p);
-			get<0>(point2) = p.x;
-			get<1>(point2) = p.y;
-			cout << "Point defini en bas a droite" << endl;
-			break;
-		}
-	}
+	cv::cvtColor(img, img, cv::COLOR_RGBA2RGB);
+
+	// define point 1 with the 2 and 3 arguments
+	point1 = std::make_tuple(std::stoi(argv[2]), std::stoi(argv[3]));
+	// define point 2 with the 4 and 5 arguments
+	point2 = std::make_tuple(std::stoi(argv[4]), std::stoi(argv[5]));
+
 
 	// resize the image to fit bewteen the two points
-	int width = abs(get<0>(point2) - get<0>(point1));
-	int height = abs(get<1>(point2) - get<1>(point1));
+	int width = abs(std::get<0>(point2) - std::get<0>(point1));
+	int height = abs(std::get<1>(point2) - std::get<1>(point1));
 	cv::resize(img, img, cv::Size(width, height));
 
 	// for each pixel, change color to the closest color in the list
@@ -151,6 +145,8 @@ int main()
 		for (int j = 0; j < img.cols; j++)
 		{
 			cv::Vec3b& pixel = img.at<cv::Vec3b>(i, j);
+			
+			
 			int distance = 255 * 3;
 			int colorIndex = -1;
 			for (int k = 0; k < sizeof(couleursDisponibles) / sizeof(cv::Scalar); k++)
@@ -171,16 +167,16 @@ int main()
 
 
 	// declare list of points
-	vector<tuple<cv::Vec3b, tuple<tuple<int, int>, tuple<int, int>>>> lines;
+	std::vector<std::tuple<cv::Vec3b, std::tuple<std::tuple<int, int>, std::tuple<int, int>>>> lines;
 
 
 	// for each rows
 	for (int i = 0; i < img.rows; i++)
 	{
 		// create a start point
-		tuple<int, int> startPoint = make_tuple(get<0>(point1), get<1>(point1) + i);
+		std::tuple<int, int> startPoint = std::make_tuple(std::get<0>(point1), std::get<1>(point1) + i);
 		// create a end point
-		tuple<int, int> endPoint = make_tuple(get<0>(point1), get<1>(point1) + i);
+		std::tuple<int, int> endPoint = std::make_tuple(std::get<0>(point1), std::get<1>(point1) + i);
 		// for each columns
 		for (int j = 0; j < img.cols; j++)
 		{
@@ -200,32 +196,29 @@ int main()
 			j = k;
 			
 			// update the end point
-			get<0>(endPoint) = get<0>(point1) + k;
+			std::get<0>(endPoint) = std::get<0>(point1) + k;
 			// add the line to the list
-			lines.push_back(make_tuple(pixel, make_tuple(startPoint, endPoint)));
+			lines.push_back(std::make_tuple(pixel, std::make_tuple(startPoint, endPoint)));
 			// update the start point
-			startPoint = make_tuple(get<0>(point1) + k, get<1>(point1) + i);
+			startPoint = std::make_tuple(std::get<0>(point1) + k, std::get<1>(point1) + i);
 		}
 	}
-
-
 
 
 	for (int coord = 0; coord < sizeof(coordonneesCouleurs) / sizeof(cv::Point); coord++)
 	{
-		SetCursorPos((get<0>(coordonneesCouleurs[coord])), (get<1>(coordonneesCouleurs[coord])));
+		SetCursorPos((std::get<0>(coordonneesCouleurs[coord])), (std::get<1>(coordonneesCouleurs[coord])));
 		click();
 		// draw the lines
 		for (int i = 0; i < lines.size(); i++)
 		{
-			if (get<0>(lines[i]) == couleursColoriage[coord])
+			if (std::get<0>(lines[i]) == couleursColoriage[coord])
 			{
 				if (GetAsyncKeyState(VK_NUMPAD0)) {
 					return 0;
 				}
-				drawLine(get<0>(get<1>(lines[i])), get<1>(get<1>(lines[i])));
+				drawLine(std::get<0>(std::get<1>(lines[i])), std::get<1>(std::get<1>(lines[i])));
 			}
 		}
 	}
-
 }
